@@ -97,22 +97,24 @@ def authenticate(username, role):
 
 def user_dashboard(user_id):
     st.title("User Dashboard")
-    project_codes = [code[1] for code in get_project_codes()]
+    # project_codes = [code[1] for code in get_project_codes()]
+    project_codes = get_project_codes()
+    project_code_map = {code[1]: code[0] for code in project_codes}
 
     selected_action = st.selectbox("What would you like to do?", ["Create Timesheet", "Modify Timesheet", "Delete Timesheet", "View Timesheets", "Respond to Comments"])
 
     if selected_action == "Create Timesheet":
         with st.form("create_timesheet", clear_on_submit=True):
-            project_code = st.selectbox("Project Code", project_codes)
-            dates = [st.date_input("Date", key=i) for i in range(7)]
-            hours = [st.number_input(f"Hours for {dates[i].strftime('%Y-%m-%d')}", min_value=0.0, max_value=24.0, key=i) for i in range(7)]
+            project_code = st.selectbox("Project Code", list(project_code_map.keys()))
+            date = st.date_input("Date")
+            hours = st.number_input(f"Hours for {date.strftime('%Y-%m-%d')}", min_value=0.0, max_value=24.0)
             submitted = st.form_submit_button("Create")
 
             if submitted:
-                project_code_id = fetch_query('SELECT id FROM project_codes WHERE code = ?', (project_code,))[0][0]
-                for date, hour in zip(dates, hours):
-                    run_query('INSERT INTO timesheets (user_id, project_code_id, date, hours, status) VALUES (?, ?, ?, ?, ?)',
-                              (user_id, project_code_id, date.strftime('%Y-%m-%d'), hour, 'pending'))
+                project_code_id = project_code_map[project_code]
+                run_query('INSERT INTO timesheets (user_id, project_code_id, date, hours, status) VALUES (?, ?, ?, ?, ?)',
+                (user_id, project_code_id, date.strftime('%Y-%m-%d'), hours, 'pending'))
+
                 st.success("Timesheet created successfully!")
 
 #### Modifying Timesheets
